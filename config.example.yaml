@@ -1,0 +1,24 @@
+# name.com API
+api_host: 'api.name.com'
+username: 'whatever@example.com'
+token: 'YOUR_TOKEN'
+domain_name: 'example.com'
+# domain_id can be found by manually querying name.com's listrecords domain API
+# or by viewing the html source in your browser on the URL:
+# https://www.name.com/account/domain/details/{DOMAIN}#dns
+# The ID will be mentioned on a checkbox for the row you want, prefixed with
+# some letters which you should remove in this config since the ID is only
+# numeric.
+domain_id: 123456
+# Display-only, used in the email notifications if needed and maps to the domain
+# represented by the domain_id value
+domain_being_updated: 'home.example.com'
+
+# email notifications
+send_emails: true
+mail_host: 'example.com'
+mail_port: 465
+mail_user: 'test'
+mail_pass: 'test12'
+from_email: 'dns@example.com'
+to_email: 'admin@example.com'
