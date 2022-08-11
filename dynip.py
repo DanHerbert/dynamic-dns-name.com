@@ -68,8 +68,31 @@ resp body: {4}
       state['last_fatal_mail_sent'] = datetime.now().isoformat()
       with open(STATE_PATH, mode='wt', encoding='utf-8') as file:
         yaml.dump(state, file)
+    if config['send_emails'] and not last_email_older_than(120):
+      log('Last email sent less than 2 hours ago. Intentionally not sending another')
     sys.exit(0)
 
+
+def timeout_abort(label, url):
+  log('FATAL TIMEOUT ERROR...')
+  log('Timeout from ' + label + ' api.')
+  log('url: ' + url)
+  log('timeout seconds: ' + str(reqs_timeout))
+  if config['send_emails'] and last_email_older_than(120):
+    subj = config['domain_being_updated'] + ' Dynamic DNS Fatal API Call For ' + label + ' API'
+    body = """
+FATAL TIMEOUT ERROR
+Timeout from {0} api
+url: {1}
+timeout_seconds: {2}
+""".format(label, url, reqs_timeout)
+    send_mail(subj, body)
+    state['last_fatal_mail_sent'] = datetime.now().isoformat()
+    with open(STATE_PATH, mode='wt', encoding='utf-8') as file:
+      yaml.dump(state, file)
+  if config['send_emails'] and not last_email_older_than(120):
+    log('Last email sent less than 2 hours ago. Intentionally not sending another')
+  sys.exit(0)
 
 BLANK_STATE={'wan_ip': '127.0.0.1', 'last_updated':datetime.now().isoformat(), 'last_fatal_mail_sent': '2022-01-01T00:00:00.000000'}
 SCRIPT_PATH=os.path.dirname(os.path.abspath(__file__))
@@ -90,17 +113,19 @@ else:
     state=BLANK_STATE
 
 old_wan_ip=(state['wan_ip'])
+reqs_timeout=config['requests_timeout_seconds']
 
-ip_api_resp=requests.get('https://ip4.seeip.org/')
-abort_on_failure('seeip', ip_api_resp)
+try:
+  ip_api_resp=requests.get(config['wanip_endpoint'], timeout=reqs_timeout)
+except requests.exceptions.ReadTimeout:
+  timeout_abort('wan_ip_endpoint', config['wanip_endpoint'])
+abort_on_failure('wan_ip_endpoint', ip_api_resp)
 
 wan_ip=ip_api_resp.text
 
 if wan_ip == old_wan_ip:
   sys.exit(0)
 
-state['wan_ip']=wan_ip
-state['last_updated']=datetime.now().isoformat()
 
 record_api_fmt='{api_origin}/v4/domains/{domain_name}/records/{domain_id}'
 record_api_url=record_api_fmt.format(
@@ -109,7 +134,10 @@ record_api_url=record_api_fmt.format(
       domain_id=str(config['domain_id'])
     )
 auth_params=(config['username'], config['token'])
-get_resp=requests.get(record_api_url, auth=auth_params)
+try:
+  get_resp=requests.get(record_api_url, auth=auth_params, timeout=reqs_timeout)
+except requests.exceptions.ReadTimeout:
+  timeout_abort('GETRECORD', record_api_url)
 abort_on_failure('GETRECORD', get_resp)
 
 existing_record=get_resp.json()
@@ -117,13 +145,19 @@ existing_record['answer']=wan_ip
 # name.com enforces 5 minutes as the minimum.
 # Assert that minimum, since this is for a dynamic IP.
 existing_record['ttl']=300
-put_resp=requests.put(
-        record_api_url,
-        auth=auth_params,
-        headers={'Content-Type': 'application/json'},
-        data=json.dumps(existing_record)
-    )
+try:
+  put_resp=requests.put(
+          record_api_url,
+          auth=auth_params,
+          headers={'Content-Type': 'application/json'},
+          data=json.dumps(existing_record)
+      )
+except requests.exceptions.ReadTimeout:
+  timeout_abort('UPDATERECORD', record_api_url)
 abort_on_failure('UPDATERECORD', put_resp)
+
+state['wan_ip']=wan_ip
+state['last_updated']=datetime.now().isoformat()
 
 log('Updated IP to ' + wan_ip)
 if config['send_emails']:
