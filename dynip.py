@@ -6,6 +6,7 @@ import os
 import smtplib
 import ssl
 import sys
+import time
 
 from datetime import datetime
 from datetime import timedelta
@@ -117,23 +118,36 @@ timeout_seconds: {reqs_timeout}
     sys.exit(0)
 
 
-def get_wan_ip(config, state, old_wan_ip, reqs_timeout):
-    """Gets the current wan IP."""
+def get_with_retry(config, state, url, timeout, auth=None):
+    """Gets the specified URL and retries if there's a timeout."""
     tries=0
     while True:
         try:
-            ip_api_resp=requests.get(config['wanip_endpoint'], timeout=reqs_timeout)
+            resp=requests.get(url, auth=auth, timeout=timeout)
             break
         except requests.exceptions.ReadTimeout:
             tries+=1
             if tries < config['wanip_retry_limit']:
+                time.sleep(timeout)
                 continue
             timeout_abort(config, state, 'wan_ip_endpoint', config['wanip_endpoint'])
-            break
+        except requests.exceptions.ConnectionError:
+            tries+=1
+            if tries < config['wanip_retry_limit']:
+                time.sleep(timeout)
+                continue
+            timeout_abort(config, state, 'wan_ip_endpoint', config['wanip_endpoint'])
 
-    abort_on_failure(config, state, 'wan_ip_endpoint', ip_api_resp)
+    abort_on_failure(config, state, 'wan_ip_endpoint', resp)
+    return resp
 
-    wan_ip=ip_api_resp.text
+
+def get_wan_ip(config, state, old_wan_ip, reqs_timeout):
+    """Gets the current wan IP."""
+    wan_ip=get_with_retry(config,
+                          state,
+                          config['wanip_endpoint'],
+                          reqs_timeout).text
 
     if wan_ip == old_wan_ip:
         sys.exit(0)
@@ -168,11 +182,11 @@ def main():
                     f"{config['domain_name']}/records/"
                     f"{str(config['domain_id'])}")
     auth_params=(config['username'], config['token'])
-    try:
-        get_resp=requests.get(record_api_url, auth=auth_params, timeout=reqs_timeout)
-    except requests.exceptions.ReadTimeout:
-        timeout_abort(config, state, 'GETRECORD', record_api_url)
-    abort_on_failure(config, state, 'GETRECORD', get_resp)
+    get_resp=get_with_retry(config,
+                            state,
+                            record_api_url,
+                            auth=auth_params,
+                            timeout=reqs_timeout)
 
     existing_record=get_resp.json()
     existing_record['answer']=wan_ip
@@ -203,4 +217,6 @@ def main():
     with open(STATE_PATH, mode='wt', encoding='utf-8') as final_state_file:
         yaml.dump(state, final_state_file)
 
-main()
+
+if __name__ == '__main__':
+    main()
