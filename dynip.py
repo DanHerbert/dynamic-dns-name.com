@@ -128,7 +128,7 @@ def timeout_abort(label, url):
     log('Timeout from ' + label + ' api.')
     log('url: ' + url)
     log('timeout seconds: ' + str(reqs_timeout))
-    log('retries: ' + config['getreq_retry_limit'])
+    log('retries: ' + str(config['getreq_retry_limit']))
     if config['send_emails'] and last_email_older_than(120):
         subj = config['domain_being_updated'] + ' Dynamic DNS Fatal API Call For ' + label + ' API'
         body = f"""
