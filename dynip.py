@@ -59,8 +59,8 @@ To: {to_addr}
 Subject: {mail_subject}
 
 {mail_body}"""
-    server.login(config['mail_user'], config['mail_pass'])
-    server.sendmail(from_addr, to_addr, msg)
+        server.login(config['mail_user'], config['mail_pass'])
+        server.sendmail(from_addr, to_addr, msg)
 
 
 def abort_on_failure(config, state, label, resp):
@@ -107,6 +107,7 @@ FATAL TIMEOUT ERROR
 Timeout from {label} api
 url: {url}
 timeout_seconds: {reqs_timeout}
+retries: {config['getreq_retry_limit']}
 """
         send_mail(config, subj, body)
         state['last_fatal_mail_sent'] = datetime.now().isoformat()
@@ -118,7 +119,7 @@ timeout_seconds: {reqs_timeout}
     sys.exit(0)
 
 
-def get_with_retry(config, state, url, timeout, auth=None):
+def get_with_retry(config, state, url, label, timeout, auth=None):
     """Gets the specified URL and retries if there's a timeout."""
     tries=0
     while True:
@@ -130,15 +131,15 @@ def get_with_retry(config, state, url, timeout, auth=None):
             if tries < config['getreq_retry_limit']:
                 time.sleep(timeout)
                 continue
-            timeout_abort(config, state, 'wan_ip_endpoint', config['wanip_endpoint'])
+            timeout_abort(config, state, label, url)
         except requests.exceptions.ConnectionError:
             tries+=1
             if tries < config['getreq_retry_limit']:
                 time.sleep(timeout)
                 continue
-            timeout_abort(config, state, 'wan_ip_endpoint', config['wanip_endpoint'])
+            timeout_abort(config, state, label, url)
 
-    abort_on_failure(config, state, 'wan_ip_endpoint', resp)
+    abort_on_failure(config, state, label, resp)
     return resp
 
 
@@ -147,6 +148,7 @@ def get_wan_ip(config, state, old_wan_ip, reqs_timeout):
     wan_ip=get_with_retry(config,
                           state,
                           config['wanip_endpoint'],
+                          'wan_ip_endpoint'
                           reqs_timeout).text
 
     if wan_ip == old_wan_ip:
@@ -185,6 +187,7 @@ def main():
     get_resp=get_with_retry(config,
                             state,
                             record_api_url,
+                            'record_list_api'
                             auth=auth_params,
                             timeout=reqs_timeout)
 
