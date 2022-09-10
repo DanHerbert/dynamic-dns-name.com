@@ -127,13 +127,13 @@ def get_with_retry(config, state, url, timeout, auth=None):
             break
         except requests.exceptions.ReadTimeout:
             tries+=1
-            if tries < config['wanip_retry_limit']:
+            if tries < config['getreq_retry_limit']:
                 time.sleep(timeout)
                 continue
             timeout_abort(config, state, 'wan_ip_endpoint', config['wanip_endpoint'])
         except requests.exceptions.ConnectionError:
             tries+=1
-            if tries < config['wanip_retry_limit']:
+            if tries < config['getreq_retry_limit']:
                 time.sleep(timeout)
                 continue
             timeout_abort(config, state, 'wan_ip_endpoint', config['wanip_endpoint'])
