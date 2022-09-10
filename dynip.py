@@ -128,6 +128,7 @@ def timeout_abort(label, url):
     log('Timeout from ' + label + ' api.')
     log('url: ' + url)
     log('timeout seconds: ' + str(reqs_timeout))
+    log('retries: ' + config['getreq_retry_limit'])
     if config['send_emails'] and last_email_older_than(120):
         subj = config['domain_being_updated'] + ' Dynamic DNS Fatal API Call For ' + label + ' API'
         body = f"""
@@ -146,26 +147,26 @@ retries: {config['getreq_retry_limit']}
     sys.exit(0)
 
 
-def get_with_retry(url, label, auth=None):
+def get_with_retry(url, label, api_auth=None):
     """Gets the specified URL and retries if there's a timeout."""
     config=get_config()
-    timeout=config['requests_timeout_seconds']
+    reqs_timeout=config['requests_timeout_seconds']
     retry_limit=config['getreq_retry_limit']
     tries=0
     while True:
         try:
-            resp=requests.get(url, auth=auth, timeout=timeout)
+            resp=requests.get(url, auth=api_auth, timeout=reqs_timeout)
             break
         except requests.exceptions.ReadTimeout:
             tries+=1
             if tries < retry_limit:
-                time.sleep(timeout)
+                time.sleep(reqs_timeout)
                 continue
             timeout_abort(label, url)
         except requests.exceptions.ConnectionError:
             tries+=1
             if tries < retry_limit:
-                time.sleep(timeout)
+                time.sleep(reqs_timeout)
                 continue
             timeout_abort(label, url)
 
@@ -173,12 +174,11 @@ def get_with_retry(url, label, auth=None):
     return resp
 
 
-def get_wan_ip(old_wan_ip, reqs_timeout):
+def get_wan_ip(old_wan_ip):
     """Gets the current wan IP."""
     config=get_config()
     wan_ip=get_with_retry(config['wanip_endpoint'],
-                          'wan_ip_endpoint',
-                          reqs_timeout).text
+                          'wan_ip_endpoint').text
 
     if wan_ip == old_wan_ip:
         sys.exit(0)
@@ -207,7 +207,7 @@ def main():
     old_wan_ip=state['wan_ip']
     reqs_timeout=config['requests_timeout_seconds']
 
-    wan_ip=get_wan_ip(old_wan_ip, reqs_timeout)
+    wan_ip=get_wan_ip(old_wan_ip)
 
     record_api_url=(f"https://{config['api_host']}/v4/domains/"
                     f"{config['domain_name']}/records/"
@@ -215,7 +215,7 @@ def main():
     auth_params=(config['username'], config['token'])
     get_resp=get_with_retry(record_api_url,
                             'record_list_api',
-                            auth=auth_params)
+                            api_auth=auth_params)
 
     existing_record=get_resp.json()
     existing_record['answer']=wan_ip
