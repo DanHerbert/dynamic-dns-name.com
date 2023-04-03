@@ -15,11 +15,11 @@ Minimal script for checking a machine's external IP and updating its DNS when th
 
 ## Dependencies & Usage
 
-Requires `python3` and `pip3` to be installed on the machine running the script.
+Requires `python` and `pip` to be installed on the machine running the script.
 
 Make sure the script's dependencies are installed with the following command:
 ```bash
-pip3 install python-dateutil pyyaml requests
+pip install -r requirements.txt
 ```
 
 Usage:
