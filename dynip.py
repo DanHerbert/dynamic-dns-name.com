@@ -19,7 +19,9 @@ import requests
 BLANK_STATE = {
     'wan_ip': '127.0.0.1',
     'last_ip_change': datetime.now().isoformat(),
-    'last_fatal_mail_sent': '2022-01-01T00:00:00.000000'
+    'last_successful_run': datetime.now().isoformat(),
+    'last_failed_run': '1970-01-01T00:00:00.000000',
+    'last_fatal_mail_sent': '1970-01-01T00:00:00.000000'
 }
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(SCRIPT_PATH, 'config.yaml')
@@ -119,7 +121,7 @@ resp body: {resp.text}
 
         if config['send_emails'] and not last_email_older_than(120):
             log('Last email sent less than 2 hours ago. Intentionally not sending another')
-        sys.exit(0)
+        fail_exit()
 
 
 def timeout_abort(label, url):
@@ -148,7 +150,7 @@ retries: {config['getreq_retry_limit']}
 
     if config['send_emails'] and not last_email_older_than(120):
         log('Last email sent less than 2 hours ago. Intentionally not sending another')
-    sys.exit(0)
+    fail_exit()
 
 
 def get_with_retry(url, label, api_auth=None):
@@ -178,16 +180,28 @@ def get_with_retry(url, label, api_auth=None):
     return resp
 
 
-def get_wan_ip(old_wan_ip):
+def get_wan_ip():
     """Gets the current wan IP."""
     config = get_config()
     wan_ip = get_with_retry(config['wanip_endpoint'],
                             'wan_ip_endpoint').text
-
-    if wan_ip == old_wan_ip:
-        sys.exit(0)
-
     return wan_ip
+
+
+def success_exit():
+    """Updates state yaml and exits with OK exit code."""
+    state = get_state()
+    state['last_successful_run'] = datetime.now().isoformat()
+    write_state(state)
+    sys.exit(0)
+
+
+def fail_exit():
+    """Updates state yaml and exits with error exit code."""
+    state = get_state()
+    state['last_failed_run'] = datetime.now().isoformat()
+    write_state(state)
+    sys.exit(1)
 
 
 def main():
@@ -195,23 +209,19 @@ def main():
 
     if not exists(CONFIG_PATH):
         log(f'Could not find {CONFIG_PATH}')
-        sys.exit(1)
+        fail_exit()
 
     with open(CONFIG_PATH, encoding='utf-8') as file_handle:
         config = yaml.safe_load(file_handle)
 
-    if not exists(STATE_PATH):
-        state = BLANK_STATE
-    else:
-        with open(STATE_PATH, encoding='utf-8') as file_handle:
-            state = yaml.safe_load(file_handle)
-        if state is None or not state:
-            state = BLANK_STATE
+    startup_state = get_state()
 
-    old_wan_ip = state['wan_ip']
+    old_wan_ip = startup_state['wan_ip']
     reqs_timeout = config['requests_timeout_seconds']
 
-    wan_ip = get_wan_ip(old_wan_ip)
+    wan_ip = get_wan_ip()
+    if wan_ip == old_wan_ip:
+        success_exit()
 
     record_api_url = (f"https://{config['api_host']}/v4/domains/"
                       f"{config['domain_name']}/records/"
@@ -240,8 +250,10 @@ def main():
         timeout_abort('UPDATERECORD', record_api_url)
     abort_on_failure('UPDATERECORD', put_resp)
 
-    state['wan_ip'] = wan_ip
-    state['last_ip_change'] = datetime.now().isoformat()
+    new_state = get_state()
+    new_state['wan_ip'] = wan_ip
+    new_state['last_ip_change'] = datetime.now().isoformat()
+    write_state(new_state)
 
     log('Updated IP to ' + wan_ip)
     if config['send_emails']:
@@ -250,7 +262,7 @@ def main():
         updated_ip_body = f'Old IP: {old_wan_ip}\nNew IP: {wan_ip}'
         send_mail(updated_ip_subj, updated_ip_body)
 
-    write_state(state)
+    success_exit()
 
 
 if __name__ == '__main__':
