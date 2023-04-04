@@ -18,7 +18,7 @@ import requests
 
 BLANK_STATE = {
     'wan_ip': '127.0.0.1',
-    'last_updated': datetime.now().isoformat(),
+    'last_ip_change': datetime.now().isoformat(),
     'last_fatal_mail_sent': '2022-01-01T00:00:00.000000'
 }
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -241,7 +241,7 @@ def main():
     abort_on_failure('UPDATERECORD', put_resp)
 
     state['wan_ip'] = wan_ip
-    state['last_updated'] = datetime.now().isoformat()
+    state['last_ip_change'] = datetime.now().isoformat()
 
     log('Updated IP to ' + wan_ip)
     if config['send_emails']:
