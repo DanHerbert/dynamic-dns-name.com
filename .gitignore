@@ -1,3 +1,5 @@
-config.yaml
-state.yaml
-cronlog.txt
+/config.yaml
+/state.yaml
+/env
+/build
+/*.egg-info

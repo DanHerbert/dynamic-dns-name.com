@@ -1,0 +1,11 @@
+[Unit]
+Description=Dynamic IP DNS Check
+Requires=dynip.service
+
+[Timer]
+Unit=dynip.service
+OnBootSec=2m
+OnUnitActiveSec=5m
+
+[Install]
+WantedBy=timers.target

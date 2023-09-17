@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/bin/python3
 """Update DNS records for dynamic IP."""
 
 import json
@@ -29,7 +29,7 @@ SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(SCRIPT_PATH, "config.yaml")
 STATE_PATH = os.path.join(SCRIPT_PATH, "state.yaml")
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('dynip')
 
 
 def get_config():
@@ -97,12 +97,12 @@ def abort_on_failure(label, resp):
     config = get_config()
     state = get_state()
     if resp.status_code != 200:
-        logger.info("FATAL HTTP ERROR...")
-        logger.info("Non-200 status code from %s api.", label)
-        logger.info("url: %s", resp.url)
-        logger.info("status_code: %s", resp.status_code)
-        logger.info("elapsed: %s", resp.elapsed)
-        logger.info("resp body: %s", resp.text)
+        logger.error("FATAL HTTP ERROR...")
+        logger.warn("Non-200 status code from %s api.", label)
+        logger.warn("url: %s", resp.url)
+        logger.warn("status_code: %s", resp.status_code)
+        logger.warn("elapsed: %s", resp.elapsed)
+        logger.warn("resp body: %s", resp.text)
         if config["send_emails"] and last_email_older_than(120):
             mail_subj = (
                 config["domain_being_updated"]
@@ -134,11 +134,11 @@ def timeout_abort(label, url):
     config = get_config()
     state = get_state()
     reqs_timeout = config["requests_timeout_seconds"]
-    logger.info("FATAL TIMEOUT ERROR...")
-    logger.info("Timeout from %s api.", label)
-    logger.info("url: %s", url)
-    logger.info("timeout seconds: %s", reqs_timeout)
-    logger.info("retries: %s", config["getreq_retry_limit"])
+    logger.error("FATAL TIMEOUT ERROR...")
+    logger.warn("Timeout from %s api.", label)
+    logger.warn("url: %s", url)
+    logger.warn("timeout seconds: %s", reqs_timeout)
+    logger.warn("retries: %s", config["getreq_retry_limit"])
     if config["send_emails"] and last_email_older_than(120):
         subj = (
             config["domain_being_updated"]
@@ -198,9 +198,12 @@ def get_wan_ip():
     return wan_ip
 
 
-def success_exit():
+def success_exit(new_states=None):
     """Updates state yaml and exits with OK exit code."""
     state = get_state()
+    if new_states is not None:
+        for key in new_states:
+            state[key] = new_states[key]
     state["last_successful_run"] = datetime.now().isoformat()
     write_state(state)
     sys.exit(0)
@@ -218,7 +221,7 @@ def main():
     """Main app execution code."""
 
     if not exists(CONFIG_PATH):
-        logger.info("Could not find %s", CONFIG_PATH)
+        logger.error("Could not find %s", CONFIG_PATH)
         fail_exit()
 
     with open(CONFIG_PATH, encoding="utf-8") as file_handle:
@@ -229,6 +232,7 @@ def main():
         datefmt=config["log_datefmt"],
         level=logging.getLevelName(get_config()["log_level"]),
     )
+    logger.debug('Running dynip with config file: %s', CONFIG_PATH)
 
     startup_state = get_state()
 
@@ -248,6 +252,10 @@ def main():
     get_resp = get_with_retry(record_api_url, "record_list_api", api_auth=auth_params)
 
     existing_record = get_resp.json()
+
+    if existing_record["answer"] == wan_ip:
+        success_exit({"wan_ip": wan_ip})
+
     existing_record["answer"] = wan_ip
     # name.com enforces 5 minutes as the minimum.
     # Assert that minimum, since this is for a dynamic IP.
@@ -266,18 +274,18 @@ def main():
         timeout_abort("UPDATERECORD", record_api_url)
     abort_on_failure("UPDATERECORD", put_resp)
 
-    new_state = get_state()
-    new_state["wan_ip"] = wan_ip
-    new_state["last_ip_change"] = datetime.now().isoformat()
-    write_state(new_state)
-
     logger.info("Updated IP to %s", wan_ip)
     if config["send_emails"]:
         updated_ip_subj = config["domain_being_updated"] + " IP Address has changed"
         updated_ip_body = f"Old IP: {old_wan_ip}\nNew IP: {wan_ip}"
         send_mail(updated_ip_subj, updated_ip_body)
 
-    success_exit()
+    success_exit(
+        {
+            "wan_ip": wan_ip,
+            "last_ip_change": datetime.now().isoformat(),
+        }
+    )
 
 
 if __name__ == "__main__":
