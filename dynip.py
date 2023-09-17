@@ -2,6 +2,7 @@
 """Update DNS records for dynamic IP."""
 
 import json
+import logging
 import os
 import smtplib
 import ssl
@@ -15,6 +16,8 @@ from os.path import exists
 import dateutil.parser
 import yaml
 import requests
+
+
 
 BLANK_STATE = {
     'wan_ip': '127.0.0.1',
@@ -66,10 +69,7 @@ def last_email_older_than(minutes):
     x_mins_ago = datetime.now() - timedelta(minutes=minutes)
     return last_notified < x_mins_ago
 
-
-def log(val):
-    """Log with a timestamp prefixed to the beginning of the line."""
-    print(datetime.now().isoformat() + ' ' + val)
+logger = logging.getLogger(__name__)
 
 
 def send_mail(subject, body):
@@ -98,12 +98,12 @@ def abort_on_failure(label, resp):
     config = get_config()
     state = get_state()
     if resp.status_code != 200:
-        log('FATAL HTTP ERROR...')
-        log('Non-200 status code from ' + label + ' api.')
-        log('url: ' + resp.url)
-        log('status_code: ' + str(resp.status_code))
-        log('elapsed: ' + str(resp.elapsed))
-        log('resp body: ' + resp.text)
+        logger.info('FATAL HTTP ERROR...')
+        logger.info('Non-200 status code from %s api.', label)
+        logger.info('url: %s', resp.url)
+        logger.info('status_code: %s', resp.status_code)
+        logger.info('elapsed: %s', resp.elapsed)
+        logger.info('resp body: %s', resp.text)
         if config['send_emails'] and last_email_older_than(120):
             mail_subj = (config['domain_being_updated'] +
                          ' Dynamic DNS Fatal API Call For ' + label + ' API')
@@ -120,7 +120,7 @@ resp body: {resp.text}
             write_state(state)
 
         if config['send_emails'] and not last_email_older_than(120):
-            log('Last email sent less than 2 hours ago. Intentionally not sending another')
+            logger.info('Last email sent less than 2 hours ago. Intentionally not sending another')
         fail_exit()
 
 
@@ -129,11 +129,11 @@ def timeout_abort(label, url):
     config = get_config()
     state = get_state()
     reqs_timeout = config['requests_timeout_seconds']
-    log('FATAL TIMEOUT ERROR...')
-    log('Timeout from ' + label + ' api.')
-    log('url: ' + url)
-    log('timeout seconds: ' + str(reqs_timeout))
-    log('retries: ' + str(config['getreq_retry_limit']))
+    logger.info('FATAL TIMEOUT ERROR...')
+    logger.info('Timeout from %s api.', label)
+    logger.info('url: %s', url)
+    logger.info('timeout seconds: %s', reqs_timeout)
+    logger.info('retries: %s', config['getreq_retry_limit'])
     if config['send_emails'] and last_email_older_than(120):
         subj = config['domain_being_updated'] + \
             ' Dynamic DNS Fatal API Call For ' + label + ' API'
@@ -149,7 +149,7 @@ retries: {config['getreq_retry_limit']}
         write_state(state)
 
     if config['send_emails'] and not last_email_older_than(120):
-        log('Last email sent less than 2 hours ago. Intentionally not sending another')
+        logger.info('Last email sent less than 2 hours ago. Intentionally not sending another')
     fail_exit()
 
 
@@ -208,11 +208,17 @@ def main():
     """Main app execution code."""
 
     if not exists(CONFIG_PATH):
-        log(f'Could not find {CONFIG_PATH}')
+        logger.info('Could not find %s', CONFIG_PATH)
         fail_exit()
 
     with open(CONFIG_PATH, encoding='utf-8') as file_handle:
         config = yaml.safe_load(file_handle)
+
+    logging.basicConfig(
+        format=config['log_format'],
+        datefmt=config['log_datefmt'],
+        level=logging.getLevelName(get_config()['log_level'])
+    )
 
     startup_state = get_state()
 
@@ -255,7 +261,7 @@ def main():
     new_state['last_ip_change'] = datetime.now().isoformat()
     write_state(new_state)
 
-    log('Updated IP to ' + wan_ip)
+    logger.info('Updated IP to %s', wan_ip)
     if config['send_emails']:
         updated_ip_subj = config['domain_being_updated'] + \
             ' IP Address has changed'

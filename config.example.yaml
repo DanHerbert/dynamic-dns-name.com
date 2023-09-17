@@ -1,3 +1,8 @@
+log_level: DEBUG
+# Use this alternative format for more helpful dev logging:
+# [%(asctime)s] %(levelname)s [%(funcName)s:%(lineno)d] %(message)s
+log_format: "%(levelname)s:%(message)s"
+log_datefmt: '%Y-%m-%dT%H:%M:%S'
 # Applies to both connect & read portions of the request, so this means each
 # request could potentially take up to double the value specified here.
 requests_timeout_seconds: 5
