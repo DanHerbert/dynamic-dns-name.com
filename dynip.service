@@ -8,4 +8,4 @@ Type=oneshot
 ExecStart=/bin/sh -c 'exec $DYNDNS_WORKING_DIR/dynip.py'
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
