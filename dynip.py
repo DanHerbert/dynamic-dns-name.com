@@ -88,8 +88,11 @@ To: {to_addr}
 Subject: {subject}
 
 {body}"""
-        server.login(config["mail_user"], config["mail_pass"])
-        server.sendmail(from_addr, to_addr, msg)
+        try:
+            server.login(config["mail_user"], config["mail_pass"])
+            server.sendmail(from_addr, to_addr, msg)
+        except smtplib.SMTPException as ex:
+            logger.error("send_mail exception\n%s", ex)
 
 
 def abort_on_failure(label, resp):
