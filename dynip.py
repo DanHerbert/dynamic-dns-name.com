@@ -98,11 +98,11 @@ def abort_on_failure(label, resp):
     state = get_state()
     if resp.status_code != 200:
         logger.error("FATAL HTTP ERROR...")
-        logger.warn("Non-200 status code from %s api.", label)
-        logger.warn("url: %s", resp.url)
-        logger.warn("status_code: %s", resp.status_code)
-        logger.warn("elapsed: %s", resp.elapsed)
-        logger.warn("resp body: %s", resp.text)
+        logger.warning("Non-200 status code from %s api.", label)
+        logger.warning("url: %s", resp.url)
+        logger.warning("status_code: %s", resp.status_code)
+        logger.warning("elapsed: %s", resp.elapsed)
+        logger.warning("resp body: %s", resp.text)
         if config["send_emails"] and last_email_older_than(120):
             mail_subj = (
                 config["domain_being_updated"]
@@ -135,10 +135,10 @@ def timeout_abort(label, url):
     state = get_state()
     reqs_timeout = config["requests_timeout_seconds"]
     logger.error("FATAL TIMEOUT ERROR...")
-    logger.warn("Timeout from %s api.", label)
-    logger.warn("url: %s", url)
-    logger.warn("timeout seconds: %s", reqs_timeout)
-    logger.warn("retries: %s", config["getreq_retry_limit"])
+    logger.warning("Timeout from %s api.", label)
+    logger.warning("url: %s", url)
+    logger.warning("timeout seconds: %s", reqs_timeout)
+    logger.warning("retries: %s", config["getreq_retry_limit"])
     if config["send_emails"] and last_email_older_than(120):
         subj = (
             config["domain_being_updated"]
