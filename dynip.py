@@ -91,8 +91,8 @@ Subject: {subject}
         try:
             server.login(config["mail_user"], config["mail_pass"])
             server.sendmail(from_addr, to_addr, msg)
-        except smtplib.SMTPException as ex:
-            logger.error("send_mail exception\n%s", ex)
+        except smtplib.SMTPException as exc:
+            logger.error("send_mail exception\n%s: %s", type(exc).__name__, exc)
 
 
 def abort_on_failure(label, resp):
