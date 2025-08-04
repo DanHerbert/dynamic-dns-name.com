@@ -1,6 +1,6 @@
 [Unit]
 Description=Dynamic IP DNS Check
-Requires=dynip.service
+After=network.target nss-lookup.target
 
 [Timer]
 Unit=dynip.service

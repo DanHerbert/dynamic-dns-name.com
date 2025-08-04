@@ -1,6 +1,5 @@
 [Unit]
 Description=Dynamic IP DNS Update
-Wants=dynip.timer
 After=network.target nss-lookup.target
 
 [Service]
