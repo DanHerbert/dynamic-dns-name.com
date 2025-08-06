@@ -1,5 +1,6 @@
 /config.yaml
 /state.yaml
+/dynip.service.environment.conf
 /venv
 /build
 /*.egg-info

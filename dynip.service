@@ -5,6 +5,3 @@ After=network.target nss-lookup.target
 [Service]
 Type=oneshot
 ExecStart=/bin/sh -c 'exec $DYNDNS_WORKING_DIR/dynip.py'
-
-[Install]
-WantedBy=default.target

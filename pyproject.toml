@@ -1,0 +1,20 @@
+[project]
+version = "1.0.0"
+name = "dynip-namecom"
+description = "Dynamic IPs for domains using name.com"
+authors = [{name = "Dan Herbert", email = "dyndns-namecom@hrbrt.co"}]
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+dependencies = [
+  "python-dateutil==2.9.*",
+  "pyyaml==6.0.*",
+  "requests==2.32.*",
+]
+classifiers = [
+  "Development Status :: 5 - stable",
+  "Intended Audience :: System Administrators",
+]
+
+[project.urls]
+repository = "https://github.com/DanHerbert/dynamic-dns-name.com"

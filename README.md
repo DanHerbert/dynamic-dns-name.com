@@ -32,5 +32,33 @@ Usage:
    script is located and configure your settings.
 1. Run the script. Set it as a chron job or Systemd timer to update as often as
    you'd like. Systemd unit files are included in this repository and require
-   setting the DYNDNS_WORKING_DIR [environment variable so the systemd service
-   can reference it](https://serverfault.com/a/413408/10973).
+   creating symlinks for the `dynip.service` and `dynip.timer` files, along with
+   overriding a few environment variables for `dynip.service` to work on your
+   system. It is recommended to run this service/timer as a user service, since
+   it requires no system-level access. The commands to set it up as a user
+   service are below.
+
+   ```bash
+   mkdir -p "$XDG_CONFIG_DIR/systemd/user/dynip.service.d"
+   ln -s "$PWD/dynip.timer" "$XDG_CONFIG_DIR/systemd/user/dynip.timer"
+   ln -s "$PWD/dynip.service" "$XDG_CONFIG_DIR/systemd/user/dynip.service"
+   # Rename dynip.service.environment.example.conf to dynip.service.environment.conf
+   # and edit the values inside the file before running the following line.
+   ln -s "$PWD/dynip.service.environment.conf" "$XDG_CONFIG_DIR/systemd/user/dynip.service.d/environment.conf"
+   systemctl --user enable --now dynip.timer
+   # You will need to run the following command if not already configured.
+   sudo loginctl enable-linger $USER
+   ```
+
+   If setting it up as a system service, replace all occurrences of
+   `$XDG_CONFIG_DIR/systemd/user` with `$(systemd-path systemd-system-conf)`.
+
+   ```bash
+   mkdir -p "$(systemd-path systemd-system-conf)/dynip.service.d"
+   ln -s "$PWD/dynip.timer" "$(systemd-path systemd-system-conf)/dynip.timer"
+   ln -s "$PWD/dynip.service" "$(systemd-path systemd-system-conf)/dynip.service"
+   # Rename dynip.service.environment.example.conf to dynip.service.environment.conf
+   # and edit the values inside the file before running the following line.
+   ln -s "$PWD/dynip.service.environment.conf" "$(systemd-path systemd-system-conf)/dynip.service.d/environment.conf"
+   sudo systemctl enable --now dynip.timer
+   ```
