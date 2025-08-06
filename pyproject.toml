@@ -7,6 +7,7 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
 dependencies = [
+  "cysystemd==2.0.*",
   "python-dateutil==2.9.*",
   "pyyaml==6.0.*",
   "requests==2.32.*",

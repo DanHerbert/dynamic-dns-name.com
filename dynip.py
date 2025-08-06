@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Update DNS records for dynamic IP."""
 
+import argparse
 import json
 import logging
 import os
@@ -9,6 +10,7 @@ import ssl
 import sys
 import time
 
+from cysystemd import journal
 from datetime import datetime
 from datetime import timedelta
 from os.path import exists
@@ -16,6 +18,12 @@ from os.path import exists
 import dateutil.parser
 import yaml
 import requests
+
+
+parser = argparse.ArgumentParser(
+    prog="Dynip", description="Check system's current WAN IP and update DNSif needed."
+)
+parser.add_argument('--syslog', action='store_true')
 
 
 BLANK_STATE = {
@@ -230,12 +238,21 @@ def main():
     with open(CONFIG_PATH, encoding="utf-8") as file_handle:
         config = yaml.safe_load(file_handle)
 
-    logging.basicConfig(
-        format=config["log_format"],
-        datefmt=config["log_datefmt"],
-        level=logging.getLevelName(get_config()["log_level"]),
-    )
-    logger.debug('Running dynip with config file: %s', CONFIG_PATH)
+    args = parser.parse_args()
+    if args.syslog:
+        logging.basicConfig(
+            format=config["log_format"],
+            datefmt=config["log_datefmt"],
+            level=logging.getLevelName(get_config()["log_level"]),
+            handlers=[journal.JournaldLogHandler()]
+        )
+    else:
+        logging.basicConfig(
+            format=config["log_format"],
+            datefmt=config["log_datefmt"],
+            level=logging.getLevelName(get_config()["log_level"])
+        )
+    logger.debug("Running dynip with config file: %s", CONFIG_PATH)
 
     startup_state = get_state()
 

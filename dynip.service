@@ -4,4 +4,4 @@ After=network.target nss-lookup.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'exec $DYNDNS_WORKING_DIR/dynip.py'
+ExecStart=/bin/sh -c 'exec $DYNDNS_WORKING_DIR/dynip.py --syslog'
