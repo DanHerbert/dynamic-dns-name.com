@@ -24,8 +24,8 @@ Usage:
 1. From within the repository's root folder, setup a python venv to install
    dependencies with the following commands:
    ```bash
-   python3 -m venv env
-   source env/bin/activate
+   python3 -m venv venv
+   source venv/bin/activate
    pip install .
    ```
 1. Copy `config.example.yaml` as `config.yaml` into the same directory the

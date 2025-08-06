@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/env python3
 """Update DNS records for dynamic IP."""
 
 import json

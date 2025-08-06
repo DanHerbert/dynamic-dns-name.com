@@ -1,5 +1,5 @@
 /config.yaml
 /state.yaml
-/env
+/venv
 /build
 /*.egg-info
