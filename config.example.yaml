@@ -8,6 +8,7 @@ log_datefmt: '%Y-%m-%dT%H:%M:%S'
 requests_timeout_seconds: 5
 getreq_retry_limit: 5
 # WAN IP API URL
+# replace unavailable enpoint 'https://ip4.seeip.org/' with https://api.ipify.org?format=json
 wanip_endpoint: 'https://ip4.seeip.org/'
 # name.com API
 api_host: 'api.name.com'

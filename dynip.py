@@ -209,7 +209,8 @@ def get_with_retry(url, label, api_auth=None):
 def get_wan_ip():
     """Gets the current wan IP."""
     config = get_config()
-    wan_ip = get_with_retry(config["wanip_endpoint"], "wan_ip_endpoint").text
+    data = get_with_retry(config["wanip_endpoint"], "wan_ip_endpoint").json()
+    wan_ip = data["ip"]
     return wan_ip
 
 
