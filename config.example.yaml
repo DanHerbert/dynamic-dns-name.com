@@ -10,7 +10,7 @@ getreq_retry_limit: 5
 # WAN IP API URL
 wanip_endpoint: 'https://api.ipify.org?format=text'
 # name.com API
-api_host: 'api.name.com'
+api_host: 'https://api.name.com/core/v1'
 username: 'whatever@example.com'
 token: 'YOUR_TOKEN'
 domain_name: 'example.com'

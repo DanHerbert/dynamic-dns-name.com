@@ -25,7 +25,7 @@ import requests
 
 
 parser = argparse.ArgumentParser(
-    prog="Dynip", description="Check system's current WAN IP and update DNSif needed."
+    prog="Dynip", description="Check system's current WAN IP and update DNS if needed."
 )
 parser.add_argument("--syslog", action="store_true")
 
@@ -268,7 +268,7 @@ def main():
         success_exit()
 
     record_api_url = (
-        f"https://{config['api_host']}/v4/domains/"
+        f"{config['api_host']}/domains/"
         f"{config['domain_name']}/records/"
         f"{str(config['domain_id'])}"
     )
